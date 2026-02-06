@@ -1064,7 +1064,8 @@ Summary:"""
         try:
             blob = self._extract_json_blob(raw)
         except Exception:
-            logging.exception("Failed to extract segments from conversation preprocess response")
+            # This is expected for trivial messages - use debug level to reduce noise
+            logger.debug("Failed to extract segments from conversation preprocess response (raw=%s...)", raw[:100] if raw else "empty")
             return None
         return self._segments_from_json_payload(blob)
 
@@ -1184,7 +1185,8 @@ Summary:"""
         try:
             boundaries = self._find_xml_boundaries(raw)
             if boundaries is None:
-                logger.warning("Could not find valid root tag in XML response")
+                # This is expected when LLM returns non-XML - use debug level
+                logger.debug("Could not find valid root tag in XML response (raw=%s...)", raw[:100] if raw else "empty")
                 return []
 
             start_idx, end_idx, end_tag = boundaries
@@ -1200,7 +1202,7 @@ Summary:"""
                     result.append(parsed)
 
         except ET.ParseError:
-            logger.exception("Failed to parse XML")
+            logger.debug("Failed to parse XML (raw=%s...)", raw[:100] if raw else "empty")
             return []
         else:
             return result

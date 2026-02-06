@@ -84,12 +84,21 @@ class MemULangGraphTools:
                     f.write(content)
 
                 logger.debug("Calling memory_service.memorize with temporary file: %s", file_path)
-                await self.memory_service.memorize(
+                result = await self.memory_service.memorize(
                     resource_url=file_path,
                     modality="conversation",
                     user={"user_id": user_id, **(metadata or {})},
                 )
                 logger.info("Successfully saved memory for user_id: %s", user_id)
+                
+                # Return what was actually saved for better feedback
+                items = result.get("items", [])
+                if items:
+                    summaries = [item.get("summary", "") for item in items if item.get("summary")]
+                    if summaries:
+                        return f"Saved memory: {'; '.join(summaries[:3])}"
+                return "Memory saved successfully (no new items extracted)."
+                
             except Exception as e:
                 error_msg = f"Failed to save memory for user {user_id}: {e!s}"
                 logger.exception(error_msg)
@@ -99,8 +108,6 @@ class MemULangGraphTools:
                     with contextlib.suppress(OSError):
                         os.remove(file_path)
                         logger.debug("Cleaned up temporary file: %s", file_path)
-
-            return "Memory saved successfully."
 
         return StructuredTool.from_function(
             func=None,
